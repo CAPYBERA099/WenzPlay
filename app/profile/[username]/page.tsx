@@ -1,13 +1,13 @@
 "use client"
 
-import { use, useEffect, useState } from "react"
+import { use, useEffect, useRef, useState } from "react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { users, threads, type User } from "@/lib/forum-data"
 import { formatCount, roleStyles, roleLabels, rolePermissions } from "@/lib/forum-utils"
-import { getCurrentUser, type Account } from "@/lib/auth"
+import { getCurrentUser, updateAvatar, useCurrentUser, type Account } from "@/lib/auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,7 @@ import {
   Circle,
   ShieldCheck,
   Loader2,
+  Camera,
 } from "lucide-react"
 
 export default function ProfilePage({
@@ -31,6 +32,32 @@ export default function ProfilePage({
   const { username } = use(params)
   const target = decodeURIComponent(username).toLowerCase()
   const [user, setUser] = useState<User | Account | null | undefined>(undefined)
+  const { user: currentUser } = useCurrentUser()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+
+  const isOwner = !!currentUser && currentUser.username.toLowerCase() === target
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarError(null)
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Можно загрузить только изображение.")
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError("Размер файла не должен превышать 2 МБ.")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      const updated = updateAvatar(dataUrl)
+      if (updated) setUser(updated)
+    }
+    reader.readAsDataURL(file)
+  }
 
   useEffect(() => {
     // Сначала ищем среди статических участников.
@@ -95,10 +122,31 @@ export default function ProfilePage({
           <div className="px-5 pb-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="-mt-12 flex flex-col gap-3 sm:-mt-14 sm:flex-row sm:items-end">
-                <Avatar className="h-24 w-24 rounded-md border-4 border-card">
-                  <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.username} />
-                  <AvatarFallback className="rounded-md text-2xl">{user.username[0]}</AvatarFallback>
-                </Avatar>
+                <div className="relative h-24 w-24">
+                  <Avatar className="h-24 w-24 rounded-md border-4 border-card">
+                    <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.username} />
+                    <AvatarFallback className="rounded-md text-2xl">{user.username[0]}</AvatarFallback>
+                  </Avatar>
+                  {isOwner && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+                        aria-label="Изменить аватар"
+                      >
+                        <Camera className="h-4 w-4" />
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="sr-only"
+                      />
+                    </>
+                  )}
+                </div>
                 <div className="sm:pb-1">
                   <div className="flex items-center gap-2">
                     <h1 className="font-mono text-2xl font-bold tracking-tight text-foreground">
@@ -122,16 +170,31 @@ export default function ProfilePage({
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button className="gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Подписаться
-                </Button>
-                <Button variant="outline" className="gap-2">
-                  <Mail className="h-4 w-4" />
-                  Написать
-                </Button>
+                {isOwner ? (
+                  <Button variant="outline" className="gap-2" onClick={() => fileInputRef.current?.click()}>
+                    <Camera className="h-4 w-4" />
+                    Сменить аватар
+                  </Button>
+                ) : (
+                  <>
+                    <Button className="gap-2">
+                      <UserPlus className="h-4 w-4" />
+                      Подписаться
+                    </Button>
+                    <Button variant="outline" className="gap-2">
+                      <Mail className="h-4 w-4" />
+                      Написать
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
+
+            {avatarError && (
+              <p className="mt-4 rounded-sm border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {avatarError}
+              </p>
+            )}
 
             {/* Stats */}
             <div className="mt-6 grid grid-cols-3 gap-3">

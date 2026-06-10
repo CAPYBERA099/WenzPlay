@@ -3,9 +3,12 @@
 import Link from "next/link"
 import Image from "next/image"
 import { useState } from "react"
-import { Flame, Menu, Search, X } from "lucide-react"
+import { Flame, Menu, Search, X, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useCurrentUser, logout } from "@/lib/auth"
+import { roleLabels } from "@/lib/forum-utils"
 
 const navLinks = [
   { label: "Форумы", href: "/" },
@@ -16,6 +19,7 @@ const navLinks = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
+  const { user, loading } = useCurrentUser()
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
@@ -57,20 +61,57 @@ export function SiteHeader() {
         </div>
 
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="hidden text-muted-foreground hover:text-foreground sm:inline-flex"
-          >
-            <Link href="/login">Войти</Link>
-          </Button>
-          <Button asChild size="sm" className="hidden font-medium sm:inline-flex">
-            <Link href="/register">
-              <Flame className="h-4 w-4" />
-              Регистрация
-            </Link>
-          </Button>
+          {loading ? null : user ? (
+            <>
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="hidden items-center gap-2 sm:inline-flex"
+              >
+                <Link href={`/profile/${encodeURIComponent(user.username)}`}>
+                  <Avatar className="h-6 w-6 rounded-sm">
+                    <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.username} />
+                    <AvatarFallback className="rounded-sm text-xs">
+                      {user.username[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="flex flex-col items-start leading-tight">
+                    <span className="text-sm font-medium text-foreground">{user.username}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {roleLabels[user.role]}
+                    </span>
+                  </span>
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                aria-label="Выйти"
+                className="hidden text-muted-foreground hover:text-foreground sm:inline-flex"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="hidden text-muted-foreground hover:text-foreground sm:inline-flex"
+              >
+                <Link href="/login">Войти</Link>
+              </Button>
+              <Button asChild size="sm" className="hidden font-medium sm:inline-flex">
+                <Link href="/register">
+                  <Flame className="h-4 w-4" />
+                  Регистрация
+                </Link>
+              </Button>
+            </>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -97,12 +138,43 @@ export function SiteHeader() {
               </Link>
             ))}
             <div className="mt-2 flex gap-2">
-              <Button asChild variant="outline" size="sm" className="flex-1">
-                <Link href="/login">Войти</Link>
-              </Button>
-              <Button asChild size="sm" className="flex-1">
-                <Link href="/register">Регистрация</Link>
-              </Button>
+              {user ? (
+                <>
+                  <Button asChild variant="outline" size="sm" className="flex-1">
+                    <Link
+                      href={`/profile/${encodeURIComponent(user.username)}`}
+                      onClick={() => setOpen(false)}
+                    >
+                      Мой профиль
+                    </Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="flex-1 gap-2"
+                    onClick={() => {
+                      logout()
+                      setOpen(false)
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Выйти
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild variant="outline" size="sm" className="flex-1">
+                    <Link href="/login" onClick={() => setOpen(false)}>
+                      Войти
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" className="flex-1">
+                    <Link href="/register" onClick={() => setOpen(false)}>
+                      Регистрация
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           </nav>
         </div>
