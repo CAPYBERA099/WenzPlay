@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { users, threads } from "@/lib/forum-data"
-import { formatCount, roleStyles } from "@/lib/forum-utils"
+import { formatCount, roleStyles, roleLabels } from "@/lib/forum-utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, Clock } from "lucide-react"
@@ -47,7 +47,7 @@ export function CommunitySidebar() {
                       variant="outline"
                       className={`mt-0.5 h-4 rounded-sm px-1.5 text-[10px] font-medium ${roleStyles[member.role]}`}
                     >
-                      {member.role}
+                      {roleLabels[member.role]}
                     </Badge>
                   </div>
                   <span className="font-mono text-sm font-semibold text-primary">

@@ -1,27 +1,82 @@
+"use client"
+
+import { use, useEffect, useState } from "react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { users, threads } from "@/lib/forum-data"
-import { formatCount, roleStyles } from "@/lib/forum-utils"
+import { users, threads, type User } from "@/lib/forum-data"
+import { formatCount, roleStyles, roleLabels, rolePermissions } from "@/lib/forum-utils"
+import { getCurrentUser, type Account } from "@/lib/auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calendar, MessageSquare, Award, UserPlus, Mail, Circle } from "lucide-react"
+import {
+  Calendar,
+  MessageSquare,
+  Award,
+  UserPlus,
+  Mail,
+  Circle,
+  ShieldCheck,
+  Loader2,
+} from "lucide-react"
 
-export default async function ProfilePage({
+export default function ProfilePage({
   params,
 }: {
   params: Promise<{ username: string }>
 }) {
-  const { username } = await params
-  const user = Object.values(users).find(
-    (u) => u.username.toLowerCase() === decodeURIComponent(username).toLowerCase(),
-  )
-  if (!user) notFound()
+  const { username } = use(params)
+  const target = decodeURIComponent(username).toLowerCase()
+  const [user, setUser] = useState<User | Account | null | undefined>(undefined)
+
+  useEffect(() => {
+    // Сначала ищем среди статических участников.
+    const staticUser = Object.values(users).find(
+      (u) => u.username.toLowerCase() === target,
+    )
+    if (staticUser) {
+      setUser(staticUser)
+      return
+    }
+    // Затем смотрим зарегистрированные аккаунты в localStorage.
+    try {
+      const stored: Record<string, Account> = JSON.parse(
+        localStorage.getItem("wenzplay-users") || "{}",
+      )
+      const found = Object.values(stored).find(
+        (u) => u.username.toLowerCase() === target,
+      )
+      if (found) {
+        setUser(found)
+        return
+      }
+    } catch {
+      // ignore
+    }
+    // Запасной вариант — текущий вошедший пользователь.
+    const current = getCurrentUser()
+    if (current && current.username.toLowerCase() === target) {
+      setUser(current)
+      return
+    }
+    setUser(null)
+  }, [target])
+
+  if (user === undefined) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (user === null) notFound()
 
   const userThreads = threads.filter((t) => t.authorId === user.id)
+  const permissions = rolePermissions[user.role]
 
   const statItems = [
     { label: "Сообщений", value: formatCount(user.posts), icon: MessageSquare },
@@ -62,7 +117,7 @@ export default async function ProfilePage({
                     variant="outline"
                     className={`mt-1.5 rounded-sm ${roleStyles[user.role]}`}
                   >
-                    {user.role}
+                    {roleLabels[user.role]}
                   </Badge>
                 </div>
               </div>
@@ -101,7 +156,7 @@ export default async function ProfilePage({
           <TabsList className="bg-card">
             <TabsTrigger value="threads">Темы</TabsTrigger>
             <TabsTrigger value="about">О себе</TabsTrigger>
-            <TabsTrigger value="activity">Активность</TabsTrigger>
+            <TabsTrigger value="permissions">Права</TabsTrigger>
           </TabsList>
 
           <TabsContent value="threads" className="mt-4">
@@ -135,14 +190,30 @@ export default async function ProfilePage({
               <p className="leading-relaxed text-muted-foreground">
                 Активный участник комьюнити WenzPlay. Играет в CS2 и Valorant, делится гайдами и
                 помогает новичкам. Состоит в команде с ролью{" "}
-                <span className="font-medium text-foreground">{user.role}</span>.
+                <span className="font-medium text-foreground">{roleLabels[user.role]}</span>.
               </p>
             </div>
           </TabsContent>
 
-          <TabsContent value="activity" className="mt-4">
-            <div className="rounded-md border border-border bg-card p-5 text-muted-foreground">
-              <p>Последняя активность: {user.status === "online" ? "сейчас в сети" : "недавно"}.</p>
+          <TabsContent value="permissions" className="mt-4">
+            <div className="rounded-md border border-border bg-card p-5">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                <h2 className="font-mono text-sm font-semibold text-foreground">
+                  Права роли «{roleLabels[user.role]}»
+                </h2>
+              </div>
+              <ul className="mt-4 flex flex-col gap-2">
+                {permissions.map((perm) => (
+                  <li
+                    key={perm}
+                    className="flex items-start gap-2 text-sm text-muted-foreground"
+                  >
+                    <Circle className="mt-1.5 h-1.5 w-1.5 shrink-0 fill-primary text-primary" />
+                    <span>{perm}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </TabsContent>
         </Tabs>
