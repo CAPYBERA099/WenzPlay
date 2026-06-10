@@ -20,6 +20,10 @@ export const auth = betterAuth({
     ...(process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`]
       : []),
+    ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
+    // Локальная разработка / self-hosting на VDS
+    "http://localhost:6574",
+    "http://localhost:3000",
   ],
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days

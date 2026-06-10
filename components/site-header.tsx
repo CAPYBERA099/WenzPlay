@@ -3,9 +3,11 @@
 import Link from "next/link"
 import Image from "next/image"
 import { useState } from "react"
-import { Flame, Menu, Search, X } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Flame, LogOut, Menu, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { authClient } from "@/lib/auth-client"
 
 const navLinks = [
   { label: "Форумы", href: "/" },
@@ -16,6 +18,16 @@ const navLinks = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
+  const router = useRouter()
+  const { data: session, isPending } = authClient.useSession()
+  const user = session?.user
+
+  const handleSignOut = async () => {
+    await authClient.signOut()
+    setOpen(false)
+    router.push("/")
+    router.refresh()
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
@@ -57,20 +69,39 @@ export function SiteHeader() {
         </div>
 
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="hidden text-muted-foreground hover:text-foreground sm:inline-flex"
-          >
-            <Link href="/login">Войти</Link>
-          </Button>
-          <Button asChild size="sm" className="hidden font-medium sm:inline-flex">
-            <Link href="/register">
-              <Flame className="h-4 w-4" />
-              Регистрация
-            </Link>
-          </Button>
+          {isPending ? null : user ? (
+            <>
+              <span className="hidden text-sm font-medium text-foreground sm:inline-flex">
+                {user.name || user.email}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden text-muted-foreground hover:text-foreground sm:inline-flex"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4" />
+                Выйти
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="hidden text-muted-foreground hover:text-foreground sm:inline-flex"
+              >
+                <Link href="/login">Войти</Link>
+              </Button>
+              <Button asChild size="sm" className="hidden font-medium sm:inline-flex">
+                <Link href="/register">
+                  <Flame className="h-4 w-4" />
+                  Регистрация
+                </Link>
+              </Button>
+            </>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -97,12 +128,21 @@ export function SiteHeader() {
               </Link>
             ))}
             <div className="mt-2 flex gap-2">
-              <Button asChild variant="outline" size="sm" className="flex-1">
-                <Link href="/login">Войти</Link>
-              </Button>
-              <Button asChild size="sm" className="flex-1">
-                <Link href="/register">Регистрация</Link>
-              </Button>
+              {user ? (
+                <Button size="sm" variant="outline" className="flex-1" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4" />
+                  Выйти ({user.name || user.email})
+                </Button>
+              ) : (
+                <>
+                  <Button asChild variant="outline" size="sm" className="flex-1">
+                    <Link href="/login">Войти</Link>
+                  </Button>
+                  <Button asChild size="sm" className="flex-1">
+                    <Link href="/register">Регистрация</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </nav>
         </div>

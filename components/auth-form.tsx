@@ -2,13 +2,41 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Zap, Mail, Lock, User, Eye, EyeOff } from "lucide-react"
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const isRegister = mode === "register"
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
+  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    const { error } = isRegister
+      ? await authClient.signUp.email({ email, password, name: username })
+      : await authClient.signIn.email({ email, password })
+
+    setLoading(false)
+
+    if (error) {
+      setError(error.message ?? "Что-то пошло не так. Попробуйте снова.")
+      return
+    }
+
+    router.push("/")
+    router.refresh()
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
@@ -33,10 +61,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             : "Войди, чтобы продолжить общение"}
         </p>
 
-        <form
-          className="mt-6 flex flex-col gap-4"
-          onSubmit={(e) => e.preventDefault()}
-        >
+        <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
           {isRegister && (
             <div className="flex flex-col gap-1.5">
               <label htmlFor="username" className="text-sm font-medium text-foreground">
@@ -49,6 +74,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                   placeholder="nickname"
                   className="bg-secondary pl-9"
                   autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -66,6 +94,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 placeholder="you@example.com"
                 className="bg-secondary pl-9"
                 autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
           </div>
@@ -82,6 +113,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 placeholder="••••••••"
                 className="bg-secondary px-9"
                 autoComplete={isRegister ? "new-password" : "current-password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
               />
               <button
                 type="button"
@@ -92,6 +127,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            {isRegister && (
+              <p className="text-xs text-muted-foreground">Минимум 8 символов</p>
+            )}
           </div>
 
           {!isRegister && (
@@ -102,8 +140,18 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             </div>
           )}
 
-          <Button type="submit" className="mt-2 w-full font-medium">
-            {isRegister ? "Зарегистрироваться" : "Войти"}
+          {error && (
+            <p className="text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          )}
+
+          <Button type="submit" disabled={loading} className="mt-2 w-full font-medium">
+            {loading
+              ? "Подождите..."
+              : isRegister
+                ? "Зарегистрироваться"
+                : "Войти"}
           </Button>
         </form>
 
