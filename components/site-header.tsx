@@ -8,6 +8,9 @@ import { Flame, LogOut, Menu, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth-client"
+import { roleStyles } from "@/lib/forum-utils"
+import { roleLabels } from "@/lib/roles"
+import type { User } from "@/lib/forum-data"
 
 const navLinks = [
   { label: "Форумы", href: "/" },
@@ -21,6 +24,8 @@ export function SiteHeader() {
   const router = useRouter()
   const { data: session, isPending } = authClient.useSession()
   const user = session?.user
+  const role = ((user as { role?: User["role"] } | undefined)?.role ?? "Member") as User["role"]
+  const showRole = role !== "Member"
 
   const handleSignOut = async () => {
     await authClient.signOut()
@@ -71,9 +76,21 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
           {isPending ? null : user ? (
             <>
-              <span className="hidden text-sm font-medium text-foreground sm:inline-flex">
-                {user.name || user.email}
-              </span>
+              <Link
+                href="/account"
+                className="hidden items-center gap-2 sm:inline-flex"
+              >
+                <span className="text-sm font-medium text-foreground hover:text-primary">
+                  {user.name || user.email}
+                </span>
+                {showRole && (
+                  <span
+                    className={`rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${roleStyles[role]}`}
+                  >
+                    {roleLabels[role]}
+                  </span>
+                )}
+              </Link>
               <Button
                 variant="ghost"
                 size="sm"
@@ -129,10 +146,26 @@ export function SiteHeader() {
             ))}
             <div className="mt-2 flex gap-2">
               {user ? (
-                <Button size="sm" variant="outline" className="flex-1" onClick={handleSignOut}>
-                  <LogOut className="h-4 w-4" />
-                  Выйти ({user.name || user.email})
-                </Button>
+                <div className="flex w-full flex-col gap-2">
+                  {showRole && (
+                    <Link
+                      href={`/profile/${user.name}`}
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-2 px-1"
+                    >
+                      <span className="text-sm font-medium text-foreground">{user.name}</span>
+                      <span
+                        className={`rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${roleStyles[role]}`}
+                      >
+                        {roleLabels[role]}
+                      </span>
+                    </Link>
+                  )}
+                  <Button size="sm" variant="outline" className="w-full" onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4" />
+                    Выйти ({user.name || user.email})
+                  </Button>
+                </div>
               ) : (
                 <>
                   <Button asChild variant="outline" size="sm" className="flex-1">
