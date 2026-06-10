@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth"
 import { pool } from "@/lib/db"
+import { resolveRoleForUsername } from "@/lib/roles"
 
 export const auth = betterAuth({
   database: pool,
@@ -13,6 +14,27 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
+  },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        defaultValue: "Member",
+        // Роль назначается сервером, а не приходит из формы.
+        input: false,
+      },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (newUser) => {
+          // Спец-ники (nullbyte, vinilog, alexsei) получают роль автоматически.
+          const role = resolveRoleForUsername(newUser.name)
+          return { data: { ...newUser, role } }
+        },
+      },
+    },
   },
   trustedOrigins: [
     ...(process.env.V0_RUNTIME_URL ? [process.env.V0_RUNTIME_URL] : []),
