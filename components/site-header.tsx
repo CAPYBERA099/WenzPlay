@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Flame, Menu, Search, X, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -18,8 +19,18 @@ const navLinks = [
 ]
 
 export function SiteHeader() {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
   const { user, loading } = useCurrentUser()
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const q = query.trim()
+    if (!q) return
+    router.push(`/search?q=${encodeURIComponent(q)}`)
+    setOpen(false)
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
@@ -51,13 +62,15 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto hidden items-center gap-2 lg:flex">
-          <div className="relative">
+          <form onSubmit={handleSearch} className="relative">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Поиск по форуму..."
               className="h-9 w-56 border-input bg-secondary pl-8 text-sm"
             />
-          </div>
+          </form>
         </div>
 
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
@@ -127,6 +140,15 @@ export function SiteHeader() {
       {open && (
         <div className="border-t border-border bg-card px-4 py-3 md:hidden">
           <nav className="flex flex-col gap-1">
+            <form onSubmit={handleSearch} className="relative mb-2">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Поиск по форуму..."
+                className="h-9 w-full border-input bg-secondary pl-8 text-sm"
+              />
+            </form>
             {navLinks.map((link) => (
               <Link
                 key={link.label}

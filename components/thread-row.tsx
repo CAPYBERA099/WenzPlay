@@ -1,13 +1,12 @@
 import Link from "next/link"
-import type { Thread } from "@/lib/forum-data"
-import { users } from "@/lib/forum-data"
-import { formatCount, roleStyles } from "@/lib/forum-utils"
+import type { StoredThread } from "@/lib/threads"
+import { formatCount, roleStyles, roleLabels } from "@/lib/forum-utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Eye, MessageSquare, Pin, Flame } from "lucide-react"
 
-export function ThreadRow({ thread }: { thread: Thread }) {
-  const author = users[thread.authorId]
+export function ThreadRow({ thread }: { thread: StoredThread }) {
+  const author = thread.author
 
   return (
     <Link
@@ -38,7 +37,7 @@ export function ThreadRow({ thread }: { thread: Thread }) {
             variant="outline"
             className={`h-4 rounded-sm px-1.5 text-[10px] font-medium ${roleStyles[author.role]}`}
           >
-            {author.role}
+            {roleLabels[author.role]}
           </Badge>
           <span>·</span>
           <span>{thread.lastActivity}</span>

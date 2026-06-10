@@ -1,23 +1,27 @@
+"use client"
+
+import { use } from "react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { ThreadRow } from "@/components/thread-row"
 import { CommunitySidebar } from "@/components/community-sidebar"
-import { getCategory, getThreadsByCategory } from "@/lib/forum-data"
+import { getCategory } from "@/lib/forum-data"
 import { formatCount } from "@/lib/forum-utils"
+import { useThreads } from "@/lib/threads"
 import { ChevronRight, Plus, FileText, MessageSquare } from "lucide-react"
 
-export default async function CategoryPage({
+export default function CategoryPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
-  const { id } = await params
+  const { id } = use(params)
   const category = getCategory(id)
   if (!category) notFound()
 
-  const categoryThreads = getThreadsByCategory(id)
+  const { threads: categoryThreads, loading } = useThreads(id)
 
   return (
     <div className="min-h-screen bg-background">
@@ -43,11 +47,11 @@ export default async function CategoryPage({
             <div className="mt-3 flex gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <FileText className="h-4 w-4" />
-                {formatCount(category.threads)} тем
+                {formatCount(categoryThreads.length)} тем
               </span>
               <span className="flex items-center gap-1.5">
                 <MessageSquare className="h-4 w-4" />
-                {formatCount(category.posts)} сообщений
+                {formatCount(categoryThreads.reduce((sum, t) => sum + t.replies + 1, 0))} сообщений
               </span>
             </div>
           </div>
@@ -67,7 +71,7 @@ export default async function CategoryPage({
                 Темы
               </h2>
             </div>
-            {categoryThreads.length > 0 ? (
+            {!loading && categoryThreads.length > 0 ? (
               <div>
                 {categoryThreads.map((thread) => (
                   <ThreadRow key={thread.id} thread={thread} />

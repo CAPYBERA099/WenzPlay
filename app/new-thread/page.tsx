@@ -1,20 +1,45 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { sections } from "@/lib/forum-data"
-import { ChevronRight, Bold, Italic, Link2, Code, Send } from "lucide-react"
+import { useCurrentUser } from "@/lib/auth"
+import { createThread } from "@/lib/threads"
+import { ChevronRight, Bold, Italic, Link2, Code, Send, LogIn } from "lucide-react"
 
 export default function NewThreadPage() {
+  const router = useRouter()
+  const { user, loading } = useCurrentUser()
   const [title, setTitle] = useState("")
   const [body, setBody] = useState("")
   const [category, setCategory] = useState("")
 
   const canSubmit = title.trim() && body.trim() && category
+
+  function handleSubmit(e?: React.FormEvent) {
+    e?.preventDefault()
+    console.log("[v0] handleSubmit fired", { user: !!user, canSubmit })
+    if (!user || !canSubmit) return
+    const thread = createThread({
+      title,
+      content: body,
+      categoryId: category,
+      author: {
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar,
+        role: user.role,
+        posts: user.posts,
+        reputation: user.reputation,
+      },
+    })
+    router.push(`/thread/${thread.id}`)
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,9 +58,26 @@ export default function NewThreadPage() {
           Создать тему
         </h1>
 
+        {!loading && !user && (
+          <div className="mt-6 flex flex-col items-start gap-3 rounded-md border border-border bg-card p-5">
+            <p className="text-muted-foreground">
+              Чтобы создать тему, нужно войти в аккаунт.
+            </p>
+            <Button asChild className="gap-2">
+              <Link href="/login">
+                <LogIn className="h-4 w-4" />
+                Войти
+              </Link>
+            </Button>
+          </div>
+        )}
+
         <form
-          onSubmit={(e) => e.preventDefault()}
-          className="mt-6 flex flex-col gap-5 rounded-md border border-border bg-card p-5"
+          onSubmit={handleSubmit}
+          aria-hidden={!user}
+          className={`mt-6 flex flex-col gap-5 rounded-md border border-border bg-card p-5 ${
+            !loading && !user ? "pointer-events-none opacity-50" : ""
+          }`}
         >
           <div className="flex flex-col gap-1.5">
             <label htmlFor="category" className="text-sm font-medium text-foreground">
@@ -106,7 +148,7 @@ export default function NewThreadPage() {
             <Button asChild variant="outline">
               <Link href="/">Отмена</Link>
             </Button>
-            <Button type="submit" disabled={!canSubmit} className="gap-2">
+            <Button type="submit" onClick={() => handleSubmit()} disabled={!canSubmit} className="gap-2">
               <Send className="h-4 w-4" />
               Опубликовать тему
             </Button>

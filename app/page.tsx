@@ -3,9 +3,9 @@ import { SiteFooter } from "@/components/site-footer"
 import { StatsBar } from "@/components/stats-bar"
 import { CategoryRow } from "@/components/category-row"
 import { CommunitySidebar } from "@/components/community-sidebar"
+import { HeroCta } from "@/components/hero-cta"
 import { sections } from "@/lib/forum-data"
 import { Flame } from "lucide-react"
-import Link from "next/link"
 
 export default function HomePage() {
   return (
@@ -27,21 +27,7 @@ export default function HomePage() {
             Гайды, софт, маркетплейс и живое общение для геймеров. Присоединяйся к
             тысячам участников и прокачивай свою игру.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/register"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-sm bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              <Flame className="h-4 w-4" />
-              Создать аккаунт
-            </Link>
-            <Link
-              href="#categories"
-              className="inline-flex h-10 items-center justify-center rounded-sm border border-border bg-card px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-            >
-              Смотреть разделы
-            </Link>
-          </div>
+          <HeroCta />
         </div>
       </section>
 
